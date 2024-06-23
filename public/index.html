@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Image Finder</title>
+    <style>
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        .submit-btn {
+            padding: 10px 20px;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+        }
+        .autocomplete-suggestions {
+            border: 1px solid #ccc;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .autocomplete-suggestion {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .autocomplete-suggestion:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Contact Image Finder</h1>
+        <input type="text" id="contact-input" class="input-field" placeholder="Enter email or website" oninput="fetchAutocomplete()">
+        <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+        <button onclick="getImage()" class="submit-btn">Get Image</button>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        async function getImage() {
+            const input = document.getElementById('contact-input').value.trim();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            try {
+                const response = await fetch('/get-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: input })
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p>Type: ${data.type}</p>
+                        <p>Input: ${data.input}</p>
+                        <img src="${data.imageUrl}" alt="Image" width="200">
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">An error occurred.</p>`;
+            }
+        }
+
+        async function fetchAutocomplete() {
+            const query = document.getElementById('contact-input').value.trim();
+            const suggestionsDiv = document.getElementById('autocomplete-suggestions');
+            suggestionsDiv.innerHTML = '';
+
+            if (query.length < 2) return;
+
+            try {
+                const response = await fetch(`/autocomplete?query=${query}`);
+                const suggestions = await response.json();
+
+                suggestions.forEach(suggestion => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.innerText = suggestion.name;
+                    div.onclick = () => {
+                        document.getElementById('contact-input').value = suggestion.domain;
+                        suggestionsDiv.innerHTML = '';
+                    };
+                    suggestionsDiv.appendChild(div);
+                });
+            } catch (error) {
+                suggestionsDiv.innerHTML = `<p class="error">Could not fetch suggestions.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
